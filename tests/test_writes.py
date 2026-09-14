@@ -26,6 +26,9 @@ def test_rejects_injection(draft, finish, expected):
         ("wrongpage", "rejected", 0),
         ("timeout", "unknown", 1),
         ("verifyfail", "unknown", 1),
+        ("savefail", "unknown", 1),
+        ("cover-schema", "rejected", 0),
+        ("missing-isbn", "rejected", 0),
     ],
 )
 def test_write_contract(mode, outcome, posts):
@@ -41,12 +44,12 @@ global.fetch=async(url,options={})=>{
   if(b.manufacturingSpecs.interior.bleed!==false || b.isbn.freeIsbn!=='isbn')throw Error('lost fields');
   finish=b.manufacturingSpecs.cover.finish;
   if(mode==='timeout')throw Error('timeout');
-  return {ok:true};
+  return {ok:mode!=='savefail',status:500};
  }
  return {ok:!(posts&&mode==='verifyfail'),headers:{get:()=>mode==='csrf'?null:'secret'},json:async()=>({
   publishingState:{status:mode==='live'?'LIVE':'DRAFT'},derivedAssets:{certified:mode==='certified'},
-  isbn:{freeIsbn:'isbn'}, manufacturingSpecs:{trimSize:{width:8.5,height:11},cover:{finish},interior:{bleed:false}},
-  publisherAssets:{coverAsset:{coverChoice:'UPLOAD',uploaded:{hasPublisherBarcode:false}}}
+  isbn:mode==='missing-isbn'?undefined:{freeIsbn:'isbn'}, manufacturingSpecs:{trimSize:{width:8.5,height:11},cover:{finish},interior:{bleed:false}},
+  publisherAssets:{coverAsset:mode==='cover-schema'?{coverChoice:'KDP_DESIGNER'}:{coverChoice:'UPLOAD',uploaded:{hasPublisherBarcode:false}}}
  })};
 };
 (SCRIPT)().then(result=>process.stdout.write(JSON.stringify({result,posts})));

@@ -23,19 +23,21 @@ def status_script(draft_id: str) -> str:
     return """async () => {
       if (location.origin !== 'https://kdp.amazon.com')
         return {error:'Select a signed-in KDP tab'};
-      const r = await fetch(PATH, {credentials:'same-origin', redirect:'error'});
+      const r = await fetch(__KDP_PATH__, {credentials:'same-origin', redirect:'error'});
       if (!r.ok) return {error:'KDP request failed', httpStatus:r.status};
       if (!(r.headers.get('content-type') || '').includes('application/json'))
         return {error:'KDP returned a login page or unexpected response'};
       const d = await r.json();
-      return {draftId:DRAFT, title:d.book?.title, pageCount:d.derivedAssets?.pageCount,
+      return {draftId:__KDP_DRAFT_ID__, title:d.book?.title, pageCount:d.derivedAssets?.pageCount,
         certified:d.derivedAssets?.certified === true,
         previewStatus:d.derivedAssetsSpec?.printPreviewerAvailability?.status,
         status:d.publishingState?.status, coverFinish:d.manufacturingSpecs?.cover?.finish,
         proofAvailable:d.publishingState?.proofAvailable === true,
         isbn:d.isbn?.freeIsbn,
         source:'unofficial KDP endpoint via signed-in Chrome'};
-    }""".replace("PATH", json.dumps(path)).replace("DRAFT", json.dumps(draft_id))
+    }""".replace("__KDP_PATH__", json.dumps(path)).replace(
+        "__KDP_DRAFT_ID__", json.dumps(draft_id)
+    )
 
 
 @asynccontextmanager
@@ -91,7 +93,7 @@ async def kdp_tabs() -> str:
     # Exclude unrelated tabs and query strings (which can contain auth tokens).
     return (
         "\n".join(
-            line.split("?", 1)[0]
+            re.sub(r"\?.*(\))$", r"\1", line)
             for line in result.splitlines()
             if "(https://kdp.amazon.com/" in line
         )

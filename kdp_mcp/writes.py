@@ -30,6 +30,8 @@ def cover_finish_script(draft_id: str, finish: str, expected_finish: str) -> str
         if (cover?.coverChoice !== 'UPLOAD' || typeof cover.uploaded?.hasPublisherBarcode !== 'boolean')
           return {outcome:'rejected', reason:'Unsupported cover schema'};
         const specs = d.manufacturingSpecs;
+        if (!d.isbn || !specs?.trimSize || !specs?.cover || !specs?.interior)
+          return {outcome:'rejected', reason:'Incomplete KDP draft schema'};
         const body = {isbn:d.isbn, manufacturingSpecs:{trimSize:specs.trimSize,
           cover:{...specs.cover,finish},interior:specs.interior},
           coverAssetConfig:{coverChoice:'UPLOAD',hasPublisherBarcode:cover.uploaded.hasPublisherBarcode},
